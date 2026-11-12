@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jangra Screen">
+<meta name="theme-color" content="#eef1f5">
+<title>Jangra Screen</title>
+<style>
+  :root{--bg:#eef1f5;--body:#fbfbfc;--edge:#d9dde3;--ink:#2b2f36;--muted:#8a919c;--led:#36d16b;--accent:#1f6feb}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink)}
+  esp-app{display:none}
+  #wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px calc(28px + env(safe-area-inset-bottom))}
+  .remote{position:relative;width:min(230px,62vw);aspect-ratio:1/3.1;border-radius:38px;
+    background:linear-gradient(180deg,#ffffff 0%,#f4f5f7 100%);
+    box-shadow:0 1px 0 #fff inset,0 0 0 1px var(--edge),0 18px 40px rgba(30,40,60,.18),0 4px 10px rgba(30,40,60,.08);
+    display:flex;flex-direction:column;align-items:center;padding:24px 0 26px}
+  .slot{width:34%;height:14px;border-radius:7px;background:#2d3138;opacity:.85;margin-bottom:22px}
+  .led{width:9px;height:9px;border-radius:50%;background:#cfd4da;margin-bottom:18px;transition:background .1s,box-shadow .1s}
+  .led.on{background:var(--led);box-shadow:0 0 10px 3px rgba(54,209,107,.7)}
+  .led.err{background:#e5484d;box-shadow:0 0 10px 3px rgba(229,72,77,.6)}
+  .pad{flex:1;width:78%;display:flex;flex-direction:column;border-radius:26px;background:#f7f8fa;
+    box-shadow:inset 0 0 0 1px #e3e6eb;overflow:hidden;position:relative}
+  .key{flex:1;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:background .08s}
+  .key:active,.key.pressed{background:#e6e9ee}
+  .key svg{width:34px;height:34px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .sep{height:1px;background:#e3e6eb;margin:0 14%}
+  .my{width:76px;height:76px;border-radius:50%;
+    border:0;background:#fff;box-shadow:0 0 0 1px #dfe3e8,0 3px 8px rgba(30,40,60,.15);font-size:22px;font-weight:600;
+    font-style:italic;letter-spacing:.5px;color:var(--ink);cursor:pointer;z-index:2;transition:transform .08s;flex:none}
+  .my:active,.my.pressed{transform:scale(.94);background:#f1f3f6}
+  .win{margin:6px 12% 0;height:34%;border-radius:10px;position:relative;overflow:hidden;
+    background:linear-gradient(180deg,#9fd3ff 0%,#d7eeff 70%,#e9f6e4 100%);box-shadow:inset 0 0 0 3px #e7eaee,inset 0 0 0 4px #cfd4da}
+  .sun{position:absolute;right:14%;top:14%;width:22%;aspect-ratio:1;border-radius:50%;background:#ffd34d;box-shadow:0 0 14px 4px rgba(255,211,77,.6)}
+  .box{position:absolute;left:0;right:0;top:0;height:8%;background:#d9dde3;z-index:3;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .shade{position:absolute;left:3px;right:3px;top:0;height:0;z-index:2;
+    background:repeating-linear-gradient(0deg,#3b4048 0 2px,#454b54 2px 4px);box-shadow:0 2px 4px rgba(0,0,0,.35)}
+  .shade::after{content:"";position:absolute;left:-3px;right:-3px;bottom:-3px;height:6px;border-radius:2px;background:#9aa1ab}
+  .brand{position:absolute;left:0;right:0;bottom:12px;text-align:center;color:rgba(255,255,255,.55);
+    font-size:12px;font-weight:700;letter-spacing:4px}
+  .pct{position:absolute;right:6px;bottom:4px;z-index:4;font-size:10px;color:#5b616b;background:rgba(255,255,255,.75);padding:1px 5px;border-radius:6px}
+  .mid{position:relative;height:96px;display:flex;align-items:center;justify-content:center}
+  .label{margin-top:16px;font-size:15px;font-weight:700;letter-spacing:6px;text-transform:uppercase;color:var(--muted)}
+  .info{margin-top:22px;width:min(320px,88vw);background:#fff;border-radius:16px;box-shadow:0 0 0 1px var(--edge);padding:12px 16px;font-size:14px}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:7px 0}
+  .row+.row{border-top:1px solid #f0f2f5}
+  .row span:first-child{color:var(--muted)}
+  .bar{height:6px;background:#eceff3;border-radius:3px;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .6s}
+  .tog{width:44px;height:26px;border-radius:13px;background:#cfd4da;position:relative;border:0;cursor:pointer;transition:background .15s}
+  .tog::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .15s}
+  .tog.on{background:var(--led)}.tog.on::after{left:21px}
+  .presets{display:flex;gap:8px;margin-top:8px}
+  .presets button{flex:1;border:0;border-radius:10px;padding:9px 0;background:#f1f3f6;font-size:13px;color:var(--ink);cursor:pointer}
+  .presets button:active{background:#e3e6eb}
+  .adv{margin-top:14px;font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:0}
+  .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b2f36;color:#fff;
+    padding:8px 14px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:.92}
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#15171b;--edge:#2a2e35;--muted:#8a919c}
+    .info{background:#1d2026;color:#e8eaee}.row+.row{border-top-color:#262a31}
+    .presets button{background:#262a31;color:#e8eaee}.bar{background:#262a31}
+  }
+  .login{width:min(320px,88vw);background:#fff;border-radius:16px;box-shadow:0 0 0 1px var(--edge);padding:18px;margin-top:22px}
+  .login h2{margin:0 0 6px;font-size:17px}.login p{margin:0 0 12px;font-size:13px;color:var(--muted)}
+  .login input{width:100%;padding:11px 12px;margin:6px 0;border:1px solid var(--edge);border-radius:10px;font-size:16px}
+  .login button{width:100%;margin-top:8px;padding:12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-size:15px;font-weight:600}
+  .conn{margin-top:10px;font-size:12px;color:var(--muted)}.conn b.ok{color:#1f9d55}.conn b.bad{color:#d33}
+  .hidden{display:none!important}
+</style></head><body>
+<div id="wrap">
+  <div class="remote" role="group" aria-label="Screen remote">
+    <div class="slot"></div>
+    <div class="led" id="led"></div>
+    <div class="pad">
+      <button class="key" id="kUp" aria-label="Up"><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg></button>
+      <div class="win" aria-hidden="true">
+        <div class="sun"></div><div class="box"></div>
+        <div class="shade" id="shade"><div class="brand">JANGRA</div></div>
+        <div class="pct" id="pct">–</div>
+      </div>
+      <div class="mid"><button class="my" id="kMy" aria-label="My or stop">my</button></div>
+      <button class="key" id="kDown" aria-label="Down"><svg viewBox="0 0 24 24"><polyline points="5,9 12,16 19,9"/></svg></button>
+    </div>
+    <div class="label">JANGRA</div>
+  </div>
+  <div class="conn" id="conn">Not connected</div>
+
+  <form class="login hidden" id="login" autocomplete="on">
+    <h2>Sign in to your screen</h2>
+    <p>Use the EMQX login you created (for example <i>jagdish-phone</i>). It is remembered only on this device.</p>
+    <input id="u" name="username" placeholder="EMQX username" autocapitalize="off" autocomplete="username" required>
+    <input id="p" name="password" type="password" placeholder="EMQX password" autocomplete="current-password" required>
+    <button type="submit">Connect</button>
+  </form>
+
+  <div class="info" id="info">
+    <div class="row"><span>Position</span><b id="pos">–</b></div>
+    <div class="bar"><i id="posbar"></i></div>
+    <div class="presets"><button data-p="100">Open</button><button data-p="50">Half</button><button data-p="0">Closed</button></div>
+    <div class="row" style="margin-top:6px"><span>Auto sun mode</span><button class="tog" id="auto" aria-label="Auto sun mode"></button></div>
+    <div class="row"><span>Outside</span><b id="s_temp">–</b></div>
+    <div class="row"><span>Sun</span><b id="s_sun">–</b></div>
+    <div class="row"><span>Wind gusts</span><b id="s_wind">–</b></div>
+  </div>
+  <button class="adv" id="logout">Sign out</button>
+  <div class="toast" id="toast"></div>
+</div>
+<script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
+<script>
+(function(){
+  const URL_WSS='wss://p1bf03d7.ala.eu-central-1.emqxsl.com:8084/mqtt';
+  const P='jangra/screen';
+  const T={cmd:P+'/cover/screen/command', posCmd:P+'/cover/screen/position/command',
+           state:P+'/cover/screen/state', posState:P+'/cover/screen/position/state',
+           my:P+'/button/my_-_stop/command', autoCmd:P+'/switch/auto_sun_mode/command',
+           autoState:P+'/switch/auto_sun_mode/state', status:P+'/status',
+           temp:P+'/sensor/outside_temperature/state', sun:P+'/sensor/sun_strength/state', wind:P+'/sensor/wind_gusts/state'};
+  const TRAVEL_S=53;
+  const $=id=>document.getElementById(id);
+  const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+  let client=null, online=false, op='IDLE', basePos=null, baseT=0, autoOn=false;
+
+  let lt; function flash(ok){clearTimeout(lt);$('led').className='led '+(ok?'on':'err');lt=setTimeout(()=>$('led').className='led',ok?600:1500);}
+  let tt; function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),2000);}
+  function setConn(t,cls){$('conn').innerHTML='<b class="'+(cls||'')+'">'+t+'</b>';}
+
+  function livePos(){if(basePos===null)return null;const dt=(performance.now()-baseT)/1000;let p=basePos;
+    if(op==='OPENING')p+=dt/TRAVEL_S;if(op==='CLOSING')p-=dt/TRAVEL_S;return Math.max(0,Math.min(1,p));}
+  function draw(){const p=livePos();if(p!==null){$('shade').style.height=(8+(1-p)*92)+'%';$('pct').textContent=Math.round(p*100)+'%';
+      $('posbar').style.width=Math.round(p*100)+'%';
+      $('pos').textContent=op==='OPENING'?'Going up…':op==='CLOSING'?'Going down…':(p>=.995?'Open':p<=.005?'Closed':Math.round(p*100)+'% open');}
+    requestAnimationFrame(draw);}
+  requestAnimationFrame(draw);
+  function startMove(o){const p=livePos();if(p!==null){basePos=p;baseT=performance.now();}op=o;}
+
+  function send(topic,payload){
+    if(!client||!client.connected){flash(false);toast('Not connected to the cloud');return;}
+    client.publish(topic,String(payload),{qos:1},err=>{flash(!err);if(err)toast('Send failed');});
+    if(!online)toast('Screen controller seems offline');
+  }
+  function press(el){el.classList.add('pressed');setTimeout(()=>el.classList.remove('pressed'),150);}
+  $('kUp').onclick=e=>{press(e.currentTarget);startMove('OPENING');send(T.cmd,'OPEN');};
+  $('kDown').onclick=e=>{press(e.currentTarget);startMove('CLOSING');send(T.cmd,'CLOSE');};
+  $('kMy').onclick=e=>{press(e.currentTarget);
+    if(op==='OPENING'||op==='CLOSING'){startMove('IDLE');send(T.cmd,'STOP');} else send(T.my,'PRESS');};
+  document.querySelectorAll('.presets button').forEach(b=>b.onclick=()=>send(T.posCmd,b.dataset.p));
+  $('auto').onclick=()=>send(T.autoCmd,autoOn?'OFF':'ON');
+
+  function connect(u,p){
+    if(client){try{client.end(true)}catch(e){}}
+    setConn('Connecting…');
+    client=mqtt.connect(URL_WSS,{username:u,password:p,clientId:'jangra-web-'+Math.random().toString(16).slice(2,10),
+      clean:true,reconnectPeriod:4000,connectTimeout:10000,keepalive:60});
+    client.on('connect',()=>{setConn('Connected to cloud','ok');$('login').classList.add('hidden');
+      client.subscribe([T.state,T.posState,T.autoState,T.status,T.temp,T.sun,T.wind],{qos:0});});
+    client.on('reconnect',()=>setConn('Reconnecting…'));
+    client.on('offline',()=>setConn('Offline – check internet','bad'));
+    client.on('error',err=>{const m=String(err&&err.message||err);
+      if(/auth|Not authorized|Bad username/i.test(m)){setConn('Login refused – check username/password','bad');client.end(true);$('login').classList.remove('hidden');}
+      else setConn('Connection error','bad');});
+    client.on('message',(t,m)=>{const v=m.toString();
+      if(t===T.status){online=(v==='online');if(!online)setConn('Connected – but screen controller is offline','bad');else setConn('Connected to cloud','ok');}
+      else if(t===T.state){const s=v.toLowerCase();const p=livePos();if(p!==null){basePos=p;baseT=performance.now();}
+        op=s==='opening'?'OPENING':s==='closing'?'CLOSING':'IDLE';}
+      else if(t===T.posState){const n=parseFloat(v);if(!isNaN(n)){basePos=n>1?n/100:n;baseT=performance.now();}}
+      else if(t===T.autoState){autoOn=(v.toUpperCase()==='ON');$('auto').classList.toggle('on',autoOn);}
+      else if(t===T.temp){$('s_temp').textContent=parseFloat(v).toFixed(1)+' °C';}
+      else if(t===T.sun){$('s_sun').textContent=Math.round(parseFloat(v))+' W/m²';}
+      else if(t===T.wind){$('s_wind').textContent=Math.round(parseFloat(v))+' km/h';}
+    });
+  }
+  $('login').addEventListener('submit',e=>{e.preventDefault();const u=$('u').value.trim(),p=$('p').value;
+    store.set('jangra_u',u);store.set('jangra_p',p);connect(u,p);});
+  $('logout').onclick=()=>{store.del('jangra_u');store.del('jangra_p');if(client)client.end(true);setConn('Signed out');$('login').classList.remove('hidden');};
+  const su=store.get('jangra_u'),sp=store.get('jangra_p');
+  if(typeof mqtt==='undefined'){setConn('Could not load MQTT library – check internet','bad');}
+  else if(su&&sp)connect(su,sp); else {$('login').classList.remove('hidden');setConn('Please sign in');}
+})();
+</script>
+</body></html>
